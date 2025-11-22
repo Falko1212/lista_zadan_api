@@ -1,0 +1,76 @@
+/* Podstawowe style dla aplikacji ToDo */
+
+body {
+    background-color: #f5f5f5;
+    padding: 20px 0;
+}
+
+.container {
+    max-width: 800px;
+}
+
+/* Przekreślenie zakończonych zadań */
+.task-done {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Marginesy i odstępy */
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-buttons .btn {
+    margin: 5px 0;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.task-content {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.task-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.task-description {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+.task-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.task-actions .btn {
+    margin: 0;
+}
+
+/* Styl dla aktywnego filtra */
+.filter-btn.active {
+    background-color: #26a69a !important;
+}
+
+/* Odstępy w liście */
+.collection-item {
+    padding: 15px !important;
+}
+
+/* Checkbox styling */
+[type="checkbox"]:checked + .task-content .task-title,
+[type="checkbox"]:checked + .task-content .task-description {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+

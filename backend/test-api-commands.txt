@@ -1,0 +1,99 @@
+
+
+API_URL="http://localhost:3000"
+
+# ==========================================
+# 1. GET /health - Sprawdzenie statusu API
+# ==========================================
+curl http://localhost:3000/health
+
+# ==========================================
+# 2. GET /tasks - Pobranie wszystkich zadań
+# ==========================================
+curl http://localhost:3000/tasks
+
+# ==========================================
+# 3. POST /tasks - Dodanie nowego zadania #1
+# ==========================================
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Kupić mleko","description":"Mleko 3,2% - 2 litry"}'
+
+# ==========================================
+# 4. POST /tasks - Dodanie nowego zadania #2
+# ==========================================
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Odrobić zadanie z backendu","description":"REST API dla TODO"}'
+
+# ==========================================
+# 5. GET /tasks - Pobranie wszystkich zadań (po dodaniu)
+# ==========================================
+curl http://localhost:3000/tasks
+
+# ==========================================
+# 6. PUT /tasks/1 - Aktualizacja zadania (oznaczenie jako zakończone)
+# ==========================================
+curl -X PUT http://localhost:3000/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"completed":true}'
+
+# ==========================================
+# 7. PUT /tasks/1 - Aktualizacja zadania (tytuł i opis)
+# ==========================================
+curl -X PUT http://localhost:3000/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Zaktualizowany tytuł","description":"Nowy opis zadania"}'
+
+# ==========================================
+# 8. PUT /tasks/1 - Aktualizacja zadania (wszystkie pola)
+# ==========================================
+curl -X PUT http://localhost:3000/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Kompletna aktualizacja","description":"Nowy opis","completed":false}'
+
+# ==========================================
+# 9. GET /tasks - Sprawdzenie zaktualizowanych zadań
+# ==========================================
+curl http://localhost:3000/tasks
+
+# ==========================================
+# 10. PUT /tasks/999 - Próba aktualizacji nieistniejącego zadania (404)
+# ==========================================
+curl -X PUT http://localhost:3000/tasks/999 \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Nieistniejące zadanie"}'
+
+# ==========================================
+# 11. POST /tasks - Walidacja (brak tytułu - 400)
+# ==========================================
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Brak tytułu"}'
+
+# ==========================================
+# 12. POST /tasks - Walidacja (pusty tytuł - 400)
+# ==========================================
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"","description":"Pusty tytuł"}'
+
+# ==========================================
+# 13. POST /tasks - Dodanie zadania tylko z tytułem (bez opisu)
+# ==========================================
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Zadanie bez opisu"}'
+
+# ==========================================
+# 14. PUT /tasks/2 - Aktualizacja tylko opisu
+# ==========================================
+curl -X PUT http://localhost:3000/tasks/2 \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Zaktualizowany opis bez zmiany tytułu"}'
+
+# ==========================================
+# 15. GET /tasks - Finalne pobranie wszystkich zadań
+# ==========================================
+curl http://localhost:3000/tasks
+

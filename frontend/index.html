@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikacja ToDo</title>
+    
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Własne style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Nagłówek -->
+        <h1 class="center-align">Lista Zadań</h1>
+        
+        <!-- Formularz dodawania zadania -->
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Dodaj nowe zadanie</span>
+                <form id="taskForm">
+                    <div class="input-field">
+                        <input type="text" id="taskTitle" required>
+                        <label for="taskTitle">Tytuł zadania</label>
+                    </div>
+                    <div class="input-field">
+                        <textarea id="taskDescription" class="materialize-textarea"></textarea>
+                        <label for="taskDescription">Opis (opcjonalny)</label>
+                    </div>
+                    <button class="btn waves-effect waves-light" type="submit">
+                        Dodaj zadanie
+                        <i class="material-icons right">add</i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Filtry -->
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Filtry</span>
+                <div class="filter-buttons">
+                    <button class="btn waves-effect waves-light filter-btn active" data-filter="all">
+                        Wszystkie
+                    </button>
+                    <button class="btn waves-effect waves-light filter-btn" data-filter="active">
+                        Aktywne
+                    </button>
+                    <button class="btn waves-effect waves-light filter-btn" data-filter="done">
+                        Zakończone
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista zadań -->
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Twoje zadania</span>
+                <ul id="taskList" class="collection">
+                    <!-- Zadania będą dodawane tutaj przez JavaScript -->
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <!-- Własny JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
+
