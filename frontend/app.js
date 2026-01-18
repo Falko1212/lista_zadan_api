@@ -1,20 +1,20 @@
-// Aplikacja ToDo - główny plik JavaScript
+// Aplikacja ToDo z autoryzacją JWT - główny plik JavaScript
 
-// Konfiguracja API - można nadpisać przez window.API_BASE_URL
+// Konfiguracja API
 const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000';
 const REQUEST_TIMEOUT = 5000; // 5 sekund
+const TOKEN_KEY = 'todo_auth_token';
+const USER_KEY = 'todo_user_data';
 
 // Stan aplikacji
 let tasks = [];
 let currentFilter = 'all'; // all, active, done
 let isLoading = false;
+let currentUser = null;
+let authToken = null;
 
 /**
  * Funkcja pomocnicza do wykonywania requestów z timeout
- * @param {string} url - URL do requestu
- * @param {Object} options - Opcje fetch
- * @param {number} timeout - Timeout w milisekundach
- * @returns {Promise<Response>}
  */
 function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT) {
     return Promise.race([
@@ -26,73 +26,247 @@ function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT) {
 }
 
 /**
- * Funkcja pomocnicza do mapowania pól między API a frontendem
- * @param {Object} task - Zadanie z API
- * @returns {Object} Zadanie z polami zmapowanymi dla frontendu
+ * Pobierz token z localStorage
  */
-function mapTaskFromAPI(task) {
-    return {
-        ...task,
-        done: task.completed !== undefined ? task.completed : false
-    };
+function getToken() {
+    return localStorage.getItem(TOKEN_KEY);
 }
 
 /**
- * Funkcja pomocnicza do mapowania pól z frontendu do API
- * @param {Object} task - Zadanie z frontendu
- * @returns {Object} Zadanie z polami zmapowanymi dla API
+ * Zapisz token do localStorage
  */
-function mapTaskToAPI(task) {
-    return {
-        title: task.title,
-        description: task.description,
-        completed: task.completed !== undefined ? task.completed : task.done || false
-    };
+function saveToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    authToken = token;
 }
 
-// Funkcja pomocnicza do obsługi błędów API
+/**
+ * Usuń token z localStorage
+ */
+function removeToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    authToken = null;
+    currentUser = null;
+}
+
+/**
+ * Zapisz dane użytkownika
+ */
+function saveUserData(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    currentUser = user;
+}
+
+/**
+ * Pobierz dane użytkownika
+ */
+function getUserData() {
+    const data = localStorage.getItem(USER_KEY);
+    return data ? JSON.parse(data) : null;
+}
+
+/**
+ * Sprawdź czy użytkownik jest zalogowany
+ */
+function isAuthenticated() {
+    return !!getToken();
+}
+
+/**
+ * Pokaż/ukryj sekcje w zależności od stanu autoryzacji
+ */
+function updateUIForAuthState() {
+    const authSection = document.getElementById('authSection');
+    const appSection = document.getElementById('appSection');
+    const userInfo = document.getElementById('userInfo');
+
+    if (isAuthenticated()) {
+        authSection.classList.add('hide');
+        appSection.classList.remove('hide');
+        userInfo.classList.remove('hide');
+
+        // Wyświetl dane użytkownika
+        const user = getUserData();
+        if (user) {
+            document.getElementById('userEmail').textContent = user.email;
+            const roleBadge = document.getElementById('userRole');
+            roleBadge.textContent = user.role === 'admin' ? 'Administrator' : 'Użytkownik';
+            roleBadge.className = user.role === 'admin' ? 'badge red' : 'badge blue';
+        }
+
+        // Wczytaj zadania
+        loadTasks();
+    } else {
+        authSection.classList.remove('hide');
+        appSection.classList.add('hide');
+        userInfo.classList.add('hide');
+    }
+}
+
+/**
+ * Obsługa rejestracji
+ */
+async function handleRegister(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value;
+
+    if (!email || !password) {
+        M.toast({ html: 'Wypełnij wszystkie pola', classes: 'red' });
+        return;
+    }
+
+    if (password.length < 6) {
+        M.toast({ html: 'Hasło musi mieć minimum 6 znaków', classes: 'red' });
+        return;
+    }
+
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            M.toast({ html: data.error || 'Błąd rejestracji', classes: 'red' });
+            return;
+        }
+
+        M.toast({ html: 'Rejestracja udana! Możesz się teraz zalogować', classes: 'green' });
+
+        // Wyczyść formularz
+        document.getElementById('registerForm').reset();
+    } catch (error) {
+        console.error('Błąd rejestracji:', error);
+        M.toast({ html: 'Nie udało się połączyć z serwerem', classes: 'red' });
+    }
+}
+
+/**
+ * Obsługa logowania
+ */
+async function handleLogin(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+        M.toast({ html: 'Wypełnij wszystkie pola', classes: 'red' });
+        return;
+    }
+
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            M.toast({ html: data.error || 'Nieprawidłowe dane logowania', classes: 'red' });
+            return;
+        }
+
+        // Zapisz token i dane użytkownika
+        saveToken(data.token);
+        saveUserData(data.user);
+
+        M.toast({ html: 'Zalogowano pomyślnie!', classes: 'green' });
+
+        // Wyczyść formularz
+        document.getElementById('loginForm').reset();
+
+        // Zaktualizuj UI
+        updateUIForAuthState();
+    } catch (error) {
+        console.error('Błąd logowania:', error);
+        M.toast({ html: 'Nie udało się połączyć z serwerem', classes: 'red' });
+    }
+}
+
+/**
+ * Obsługa wylogowania
+ */
+function handleLogout() {
+    removeToken();
+    tasks = [];
+    M.toast({ html: 'Wylogowano pomyślnie', classes: 'green' });
+    updateUIForAuthState();
+}
+
+/**
+ * Funkcja pomocnicza do obsługi błędów API
+ */
 function handleApiError(error, message) {
     console.error(message, error);
-    const errorMsg = error.message === 'Request timeout' 
+
+    // Jeśli błąd 401, wyloguj użytkownika
+    if (error.status === 401) {
+        M.toast({ html: 'Sesja wygasła. Zaloguj się ponownie', classes: 'red' });
+        handleLogout();
+        return;
+    }
+
+    const errorMsg = error.message === 'Request timeout'
         ? 'Przekroczono czas oczekiwania na odpowiedź serwera'
-        : `${message}. Sprawdź czy serwer API działa na ${API_BASE_URL}`;
-    alert(`Błąd: ${errorMsg}`);
+        : message;
+    M.toast({ html: errorMsg, classes: 'red' });
 }
 
 /**
  * Ustawia stan ładowania
- * @param {boolean} loading - Czy aplikacja ładuje dane
  */
 function setLoadingState(loading) {
     isLoading = loading;
     const taskList = document.getElementById('taskList');
     if (!taskList) return;
-    
+
     if (loading) {
         taskList.innerHTML = '<li class="collection-item"><div class="center-align"><div class="preloader-wrapper small active"><div class="spinner-layer spinner-blue-only"><div class="circle-clipper left"><div class="circle"></div></div><div class="gap-patch"><div class="circle"></div></div><div class="circle-clipper right"><div class="circle"></div></div></div></div><p>Ładowanie zadań...</p></div></li>';
     }
 }
 
-// Wczytaj zadania z API
+/**
+ * Wczytaj zadania z API
+ */
 async function loadTasks() {
+    const token = getToken();
+    if (!token) {
+        console.error('Brak tokena autoryzacji');
+        return;
+    }
+
     setLoadingState(true);
     try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/tasks`);
+        const response = await fetchWithTimeout(`${API_BASE_URL}/tasks`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const error = new Error('HTTP error');
+            error.status = response.status;
+            throw error;
         }
-        
-        // Obsługa pustej odpowiedzi
-        const text = await response.text();
-        const tasksData = text ? JSON.parse(text) : [];
-        
-        tasks = Array.isArray(tasksData) 
-            ? tasksData.map(mapTaskFromAPI)
-            : [];
+
+        const tasksData = await response.json();
+        tasks = Array.isArray(tasksData) ? tasksData : [];
         renderTasks();
     } catch (error) {
         handleApiError(error, 'Nie udało się pobrać zadań z serwera');
-        // W razie błędu wyświetl pustą listę
         tasks = [];
         renderTasks();
     } finally {
@@ -100,65 +274,52 @@ async function loadTasks() {
     }
 }
 
-// Obsługa dodawania nowego zadania
+/**
+ * Obsługa dodawania nowego zadania
+ */
 async function handleAddTask(event) {
     event.preventDefault();
-    
+
+    const token = getToken();
+    if (!token) {
+        M.toast({ html: 'Musisz być zalogowany', classes: 'red' });
+        return;
+    }
+
     const titleInput = document.getElementById('taskTitle');
-    const descriptionInput = document.getElementById('taskDescription');
-    
     const title = titleInput.value.trim();
-    const description = descriptionInput.value.trim();
-    
-    // Walidacja przed wysłaniem
+
     if (title === '') {
-        alert('Proszę podać tytuł zadania');
+        M.toast({ html: 'Proszę podać tytuł zadania', classes: 'red' });
         return;
     }
-    
-    if (title.length > 200) {
-        alert('Tytuł nie może przekraczać 200 znaków');
-        return;
-    }
-    
-    if (description.length > 1000) {
-        alert('Opis nie może przekraczać 1000 znaków');
-        return;
-    }
-    
+
     setLoadingState(true);
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/tasks`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({
-                title: title,
-                description: description
-            })
+            body: JSON.stringify({ title })
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Nie udało się dodać zadania');
+            const error = new Error('HTTP error');
+            error.status = response.status;
+            throw error;
         }
 
         const newTask = await response.json();
-        
-        // Mapuj completed na done
-        const mappedTask = mapTaskFromAPI(newTask);
-        
-        // Dodaj zadanie do lokalnej listy
-        tasks.push(mappedTask);
-        
+        tasks.push(newTask);
+
         // Wyczyść formularz
         titleInput.value = '';
-        descriptionInput.value = '';
-        M.updateTextFields(); // Aktualizuj Materialize labels
-        
-        // Przerenderuj zadania
+        M.updateTextFields();
+
         renderTasks();
+        M.toast({ html: 'Zadanie dodane!', classes: 'green' });
     } catch (error) {
         handleApiError(error, 'Nie udało się dodać zadania');
     } finally {
@@ -166,79 +327,78 @@ async function handleAddTask(event) {
     }
 }
 
-// Usuwanie zadania z listy
+/**
+ * Usuwanie zadania
+ */
 async function deleteTask(taskId) {
     if (!confirm('Czy na pewno chcesz usunąć to zadanie?')) {
         return;
     }
-    
+
+    const token = getToken();
+    if (!token) return;
+
     setLoadingState(true);
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/tasks/${taskId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         if (!response.ok) {
-            if (response.status === 404) {
-                const errorData = await response.json();
-                alert(`Błąd: ${errorData.error}`);
-                // Odśwież listę zadań
-                loadTasks();
-                return;
-            }
-            throw new Error('Nie udało się usunąć zadania');
+            const error = new Error('HTTP error');
+            error.status = response.status;
+            throw error;
         }
 
-        // Usuń z lokalnej listy
         tasks = tasks.filter(task => task.id !== taskId);
         renderTasks();
+        M.toast({ html: 'Zadanie usunięte', classes: 'green' });
     } catch (error) {
         handleApiError(error, 'Nie udało się usunąć zadania');
-        // Odśwież listę zadań w razie błędu
         loadTasks();
     } finally {
         setLoadingState(false);
     }
 }
 
-// Przełączanie statusu zadania (zakończone/aktywne)
+/**
+ * Przełączanie statusu zadania
+ */
 async function toggleTask(taskId) {
+    const token = getToken();
+    if (!token) return;
+
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    
-    const newCompleted = !(task.completed !== undefined ? task.completed : task.done);
-    
+
+    const newCompleted = !task.completed;
+
     setLoadingState(true);
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/tasks/${taskId}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({
-                completed: newCompleted
-            })
+            body: JSON.stringify({ completed: newCompleted })
         });
 
         if (!response.ok) {
-            if (response.status === 404) {
-                const errorData = await response.json();
-                alert(`Błąd: ${errorData.error}`);
-                // Odśwież listę zadań
-                loadTasks();
-                return;
-            }
-            throw new Error('Nie udało się zaktualizować zadania');
+            const error = new Error('HTTP error');
+            error.status = response.status;
+            throw error;
         }
 
         const updatedTask = await response.json();
-        
-        // Zaktualizuj lokalne zadanie
         const taskIndex = tasks.findIndex(t => t.id === taskId);
         if (taskIndex !== -1) {
-            tasks[taskIndex] = mapTaskFromAPI(updatedTask);
+            tasks[taskIndex] = updatedTask;
         }
-        
+
         renderTasks();
     } catch (error) {
         handleApiError(error, 'Nie udało się zaktualizować statusu zadania');
@@ -247,185 +407,108 @@ async function toggleTask(taskId) {
     }
 }
 
-// Rozpoczęcie edycji zadania
-async function editTask(taskId) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    // Pobierz nowy tytuł i opis
-    const newTitle = prompt('Edytuj tytuł:', task.title);
-    if (newTitle === null) return; // Użytkownik anulował
-    
-    // Walidacja przed wysłaniem
-    const trimmedTitle = newTitle.trim();
-    if (trimmedTitle === '') {
-        alert('Tytuł nie może być pusty');
-        return;
-    }
-    
-    if (trimmedTitle.length > 200) {
-        alert('Tytuł nie może przekraczać 200 znaków');
-        return;
-    }
-    
-    const newDescription = prompt('Edytuj opis:', task.description || '');
-    if (newDescription === null) return; // Użytkownik anulował
-    
-    if (newDescription.length > 1000) {
-        alert('Opis nie może przekraczać 1000 znaków');
-        return;
-    }
-    
-    setLoadingState(true);
-    try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/tasks/${taskId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                title: trimmedTitle,
-                description: newDescription.trim()
-            })
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                const errorData = await response.json();
-                alert(`Błąd: ${errorData.error}`);
-                // Odśwież listę zadań
-                loadTasks();
-                return;
-            }
-            throw new Error('Nie udało się zaktualizować zadania');
-        }
-
-        const updatedTask = await response.json();
-        
-        // Zaktualizuj lokalne zadanie
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-        if (taskIndex !== -1) {
-            tasks[taskIndex] = mapTaskFromAPI(updatedTask);
-        }
-        
-        renderTasks();
-    } catch (error) {
-        handleApiError(error, 'Nie udało się zaktualizować zadania');
-    } finally {
-        setLoadingState(false);
-    }
-}
-
-// Filtrowanie zadań na podstawie aktualnego filtra
+/**
+ * Filtrowanie zadań
+ */
 function getFilteredTasks() {
     switch (currentFilter) {
         case 'active':
-            return tasks.filter(task => {
-                const completed = task.completed !== undefined ? task.completed : task.done;
-                return !completed;
-            });
+            return tasks.filter(task => !task.completed);
         case 'done':
-            return tasks.filter(task => {
-                const completed = task.completed !== undefined ? task.completed : task.done;
-                return completed;
-            });
+            return tasks.filter(task => task.completed);
         default:
-            return tasks; // all
+            return tasks;
     }
 }
 
-// Renderowanie listy zadań
+/**
+ * Renderowanie listy zadań
+ */
 function renderTasks() {
-    if (isLoading) return; // Nie renderuj podczas ładowania
-    
+    if (isLoading) return;
+
     const taskList = document.getElementById('taskList');
-    if (!taskList) {
-        console.error('Element taskList nie został znaleziony');
-        return;
-    }
-    
-    taskList.innerHTML = ''; // Wyczyść listę
-    
+    if (!taskList) return;
+
+    taskList.innerHTML = '';
+
     const filteredTasks = getFilteredTasks();
-    
+
     if (filteredTasks.length === 0) {
-        const message = tasks.length === 0 
-            ? 'Brak zadań' 
+        const message = tasks.length === 0
+            ? 'Brak zadań'
             : 'Brak zadań pasujących do filtra';
         taskList.innerHTML = `<li class="collection-item">${message}</li>`;
         return;
     }
-    
-    // Utwórz elementy dla każdego zadania
+
     filteredTasks.forEach(task => {
         const listItem = document.createElement('li');
         listItem.className = 'collection-item';
-        
-        // Użyj completed zamiast done dla spójności z API
-        const isCompleted = task.completed !== undefined ? task.completed : task.done;
-        
+
         listItem.innerHTML = `
             <div class="task-item">
                 <label>
-                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                           onchange="toggleTask(${task.id})">
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                           onchange="toggleTask('${task.id}')">
                     <span></span>
                 </label>
-                <div class="task-content ${isCompleted ? 'task-done' : ''}">
+                <div class="task-content ${task.completed ? 'task-done' : ''}">
                     <div class="task-title">${escapeHtml(task.title)}</div>
-                    ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
                 </div>
                 <div class="task-actions">
-                    <button class="btn-small waves-effect waves-light" 
-                            onclick="editTask(${task.id})">
-                        <i class="material-icons">edit</i>
-                    </button>
                     <button class="btn-small waves-effect waves-light red" 
-                            onclick="deleteTask(${task.id})">
+                            onclick="deleteTask('${task.id}')">
                         <i class="material-icons">delete</i>
                     </button>
                 </div>
             </div>
         `;
-        
+
         taskList.appendChild(listItem);
     });
 }
 
-// Funkcja pomocnicza do bezpiecznego wyświetlania HTML (zapobiega XSS)
+/**
+ * Funkcja pomocnicza do bezpiecznego wyświetlania HTML
+ */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Inicjalizacja aplikacji po załadowaniu strony
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicjalizacja Materialize (dla formularzy)
+/**
+ * Inicjalizacja aplikacji
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    // Inicjalizacja Materialize
     M.AutoInit();
-    
-    // Wczytaj zadania z API
-    loadTasks();
-    
-    // Obsługa formularza dodawania zadania
+
+    // Sprawdź czy użytkownik jest zalogowany
+    authToken = getToken();
+    currentUser = getUserData();
+
+    // Obsługa formularzy
+    document.getElementById('registerForm').addEventListener('submit', handleRegister);
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('taskForm').addEventListener('submit', handleAddTask);
-    
+
     // Obsługa filtrów
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Usuń klasę active ze wszystkich przycisków
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            // Dodaj klasę active do klikniętego przycisku
             this.classList.add('active');
-            // Ustaw aktualny filtr
             currentFilter = this.getAttribute('data-filter');
-            // Przerenderuj zadania
             renderTasks();
         });
     });
+
+    // Zaktualizuj UI w zależności od stanu autoryzacji
+    updateUIForAuthState();
 });
 
-// Eksportuj funkcje do globalnego zakresu dla inline handlers
+// Eksportuj funkcje do globalnego zakresu
 window.toggleTask = toggleTask;
-window.editTask = editTask;
 window.deleteTask = deleteTask;

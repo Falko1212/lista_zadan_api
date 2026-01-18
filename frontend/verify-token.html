@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token JWT - Weryfikacja</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .token-box {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin: 20px 0;
+            font-size: 12px;
+        }
+
+        .payload-box {
+            background: #f0f7ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 Weryfikacja Tokena JWT</h1>
+
+        <div id="status"></div>
+
+        <div id="tokenSection" style="display: none;">
+            <h2>Token JWT:</h2>
+            <div class="token-box" id="tokenDisplay"></div>
+            <button class="btn" onclick="copyToken()">📋 Kopiuj token</button>
+            <button class="btn" onclick="openJwtIo()">🔗 Otwórz jwt.io</button>
+
+            <h2>Zdekodowany Payload:</h2>
+            <div class="payload-box">
+                <pre id="payloadDisplay"></pre>
+            </div>
+
+            <h2>Struktura tokena:</h2>
+            <table id="payloadTable"></table>
+
+            <div id="verification"></div>
+        </div>
+    </div>
+
+    <script>
+        function checkToken() {
+            const token = localStorage.getItem('todo_auth_token');
+            const statusDiv = document.getElementById('status');
+            const tokenSection = document.getElementById('tokenSection');
+
+            if (!token) {
+                statusDiv.innerHTML = `
+                    <div class="warning">
+                        <strong>⚠️ Brak tokena!</strong><br>
+                        Musisz się najpierw zalogować w aplikacji.<br><br>
+                        <a href="index.html">Przejdź do aplikacji →</a>
+                    </div>
+                `;
+                return;
+            }
+
+            statusDiv.innerHTML = '<div class="success"><strong>✅ Token znaleziony!</strong></div>';
+            tokenSection.style.display = 'block';
+
+            // Wyświetl token
+            document.getElementById('tokenDisplay').textContent = token;
+
+            // Zdekoduj payload
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                document.getElementById('payloadDisplay').textContent = JSON.stringify(payload, null, 2);
+
+                // Utwórz tabelę
+                const table = document.getElementById('payloadTable');
+                table.innerHTML = `
+                    <tr>
+                        <th>Pole</th>
+                        <th>Wartość</th>
+                        <th>Opis</th>
+                    </tr>
+                    <tr>
+                        <td><strong>sub</strong></td>
+                        <td>${payload.sub}</td>
+                        <td>ID użytkownika (UUID)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>email</strong></td>
+                        <td>${payload.email || 'brak'}</td>
+                        <td>Email użytkownika</td>
+                    </tr>
+                    <tr style="background: ${payload.user_role ? '#d4edda' : '#f8d7da'};">
+                        <td><strong>user_role</strong></td>
+                        <td>${payload.user_role || '❌ BRAK'}</td>
+                        <td>Rola aplikacji (custom claim)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>aud</strong></td>
+                        <td>${payload.aud}</td>
+                        <td>Audience</td>
+                    </tr>
+                    <tr>
+                        <td><strong>role</strong></td>
+                        <td>${payload.role}</td>
+                        <td>Rola Supabase</td>
+                    </tr>
+                    <tr>
+                        <td><strong>iat</strong></td>
+                        <td>${new Date(payload.iat * 1000).toLocaleString()}</td>
+                        <td>Wydano</td>
+                    </tr>
+                    <tr>
+                        <td><strong>exp</strong></td>
+                        <td>${new Date(payload.exp * 1000).toLocaleString()}</td>
+                        <td>Wygasa</td>
+                    </tr>
+                `;
+
+                // Weryfikacja
+                const verificationDiv = document.getElementById('verification');
+                if (payload.user_role) {
+                    verificationDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Token zawiera pole user_role: "${payload.user_role}"</strong><br>
+                            Custom Access Token Hook działa poprawnie!
+                        </div>
+                    `;
+                } else {
+                    verificationDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ Token NIE zawiera pola user_role!</strong><br>
+                            Custom Access Token Hook może nie być włączony.<br><br>
+                            Sprawdź w Supabase: Authentication → Hooks
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Błąd dekodowania tokena:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function copyToken() {
+            const token = localStorage.getItem('todo_auth_token');
+            navigator.clipboard.writeText(token).then(() => {
+                alert('✅ Token skopiowany do schowka!');
+            });
+        }
+
+        function openJwtIo() {
+            const token = localStorage.getItem('todo_auth_token');
+            window.open('https://jwt.io/#debugger-io?token=' + encodeURIComponent(token), '_blank');
+        }
+
+        // Sprawdź token przy załadowaniu strony
+        checkToken();
+    </script>
+</body>
+
+</html>

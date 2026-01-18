@@ -1,77 +1,139 @@
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja ToDo</title>
-    
+
     <!-- Materialize CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
+
     <!-- Własne style -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
-        <!-- Nagłówek -->
-        <h1 class="center-align">Lista Zadań</h1>
-        
-        <!-- Formularz dodawania zadania -->
-        <div class="card">
-            <div class="card-content">
-                <span class="card-title">Dodaj nowe zadanie</span>
-                <form id="taskForm">
-                    <div class="input-field">
-                        <input type="text" id="taskTitle" required>
-                        <label for="taskTitle">Tytuł zadania</label>
-                    </div>
-                    <div class="input-field">
-                        <textarea id="taskDescription" class="materialize-textarea"></textarea>
-                        <label for="taskDescription">Opis (opcjonalny)</label>
-                    </div>
-                    <button class="btn waves-effect waves-light" type="submit">
-                        Dodaj zadanie
-                        <i class="material-icons right">add</i>
-                    </button>
-                </form>
+        <!-- Nagłówek z informacją o użytkowniku -->
+        <div class="header-section">
+            <h1 class="center-align">Lista Zadań</h1>
+            <div id="userInfo" class="user-info hide">
+                <span id="userEmail"></span>
+                <span id="userRole" class="badge"></span>
+                <button class="btn-small waves-effect waves-light red" id="logoutBtn">
+                    Wyloguj
+                    <i class="material-icons right">exit_to_app</i>
+                </button>
             </div>
         </div>
-        
-        <!-- Filtry -->
-        <div class="card">
-            <div class="card-content">
-                <span class="card-title">Filtry</span>
-                <div class="filter-buttons">
-                    <button class="btn waves-effect waves-light filter-btn active" data-filter="all">
-                        Wszystkie
-                    </button>
-                    <button class="btn waves-effect waves-light filter-btn" data-filter="active">
-                        Aktywne
-                    </button>
-                    <button class="btn waves-effect waves-light filter-btn" data-filter="done">
-                        Zakończone
-                    </button>
+
+        <!-- Sekcja autoryzacji (widoczna gdy niezalogowany) -->
+        <div id="authSection" class="auth-section">
+            <div class="row">
+                <!-- Formularz logowania -->
+                <div class="col s12 m6">
+                    <div class="card">
+                        <div class="card-content">
+                            <span class="card-title">Logowanie</span>
+                            <form id="loginForm">
+                                <div class="input-field">
+                                    <input type="email" id="loginEmail" required>
+                                    <label for="loginEmail">Email</label>
+                                </div>
+                                <div class="input-field">
+                                    <input type="password" id="loginPassword" required>
+                                    <label for="loginPassword">Hasło</label>
+                                </div>
+                                <button class="btn waves-effect waves-light" type="submit">
+                                    Zaloguj się
+                                    <i class="material-icons right">login</i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formularz rejestracji -->
+                <div class="col s12 m6">
+                    <div class="card">
+                        <div class="card-content">
+                            <span class="card-title">Rejestracja</span>
+                            <form id="registerForm">
+                                <div class="input-field">
+                                    <input type="email" id="registerEmail" required>
+                                    <label for="registerEmail">Email</label>
+                                </div>
+                                <div class="input-field">
+                                    <input type="password" id="registerPassword" required minlength="6">
+                                    <label for="registerPassword">Hasło (min. 6 znaków)</label>
+                                </div>
+                                <button class="btn waves-effect waves-light green" type="submit">
+                                    Zarejestruj się
+                                    <i class="material-icons right">person_add</i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Lista zadań -->
-        <div class="card">
-            <div class="card-content">
-                <span class="card-title">Twoje zadania</span>
-                <ul id="taskList" class="collection">
-                    <!-- Zadania będą dodawane tutaj przez JavaScript -->
-                </ul>
+
+        <!-- Sekcja aplikacji (widoczna po zalogowaniu) -->
+        <div id="appSection" class="app-section hide">
+            <!-- Formularz dodawania zadania -->
+            <div class="card">
+                <div class="card-content">
+                    <span class="card-title">Dodaj nowe zadanie</span>
+                    <form id="taskForm">
+                        <div class="input-field">
+                            <input type="text" id="taskTitle" required>
+                            <label for="taskTitle">Tytuł zadania</label>
+                        </div>
+                        <button class="btn waves-effect waves-light" type="submit">
+                            Dodaj zadanie
+                            <i class="material-icons right">add</i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filtry -->
+            <div class="card">
+                <div class="card-content">
+                    <span class="card-title">Filtry</span>
+                    <div class="filter-buttons">
+                        <button class="btn waves-effect waves-light filter-btn active" data-filter="all">
+                            Wszystkie
+                        </button>
+                        <button class="btn waves-effect waves-light filter-btn" data-filter="active">
+                            Aktywne
+                        </button>
+                        <button class="btn waves-effect waves-light filter-btn" data-filter="done">
+                            Zakończone
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista zadań -->
+            <div class="card">
+                <div class="card-content">
+                    <span class="card-title">Twoje zadania</span>
+                    <ul id="taskList" class="collection">
+                        <!-- Zadania będą dodawane tutaj przez JavaScript -->
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Materialize JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    
+
     <!-- Własny JavaScript -->
     <script src="app.js"></script>
 </body>
-</html>
 
+</html>

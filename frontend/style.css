@@ -6,7 +6,55 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 900px;
+}
+
+/* Header z informacją o użytkowniku */
+.header-section {
+    margin-bottom: 30px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-info span {
+    font-weight: 500;
+}
+
+.user-info .badge {
+    padding: 5px 12px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.85em;
+}
+
+/* Sekcje autoryzacji i aplikacji */
+.auth-section,
+.app-section {
+    transition: opacity 0.3s ease;
+}
+
+.hide {
+    display: none !important;
+}
+
+/* Formularze autoryzacji */
+.auth-section .card {
+    margin-bottom: 20px;
+}
+
+.auth-section .card-title {
+    font-size: 1.5em;
+    margin-bottom: 20px;
 }
 
 /* Przekreślenie zakończonych zadań */
@@ -68,9 +116,24 @@ body {
 }
 
 /* Checkbox styling */
-[type="checkbox"]:checked + .task-content .task-title,
-[type="checkbox"]:checked + .task-content .task-description {
+[type="checkbox"]:checked + span + .task-content .task-title,
+[type="checkbox"]:checked + span + .task-content .task-description {
     text-decoration: line-through;
     opacity: 0.6;
 }
 
+/* Responsywność */
+@media (max-width: 600px) {
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .filter-buttons {
+        flex-direction: column;
+    }
+    
+    .filter-buttons .btn {
+        width: 100%;
+    }
+}

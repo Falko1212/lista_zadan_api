@@ -1,177 +1,29 @@
+require('dotenv').config();
 const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const morgan = require('morgan');
+const { supabase, supabaseAdmin } = require('./config/supabase');
+const { verifyToken, requireAuth, requireAdmin } = require('./middleware/auth');
 
 const app = express();
-const PORT = 3000;
-const TASKS_FILE = path.join(__dirname, 'data', 'tasks.json');
-
-// Stałe walidacji
-const MAX_TITLE_LENGTH = 200;
-const MAX_DESCRIPTION_LENGTH = 1000;
-
-// Rate limiting - zwiększony limit dla testów
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minut
-    max: process.env.NODE_ENV === 'test' ? 10000 : 100, // Wysoki limit dla testów
-    message: {
-        error: 'Too many requests',
-        message: 'Zbyt wiele requestów z tego adresu IP, spróbuj ponownie za chwilę.'
-    }
-});
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined')); // Logging requestów
 
-// Rate limiting - wyłączony w trybie testowym
-if (process.env.NODE_ENV !== 'test') {
-    app.use('/tasks', limiter); // Rate limiting dla endpointów /tasks
-}
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+});
 
-/**
- * Sprawdza czy folder data istnieje, jeśli nie - tworzy go
- * @returns {Promise<void>}
- */
-async function ensureDataDir() {
-    const dataDir = path.dirname(TASKS_FILE);
-    try {
-        await fs.access(dataDir);
-    } catch {
-        await fs.mkdir(dataDir, { recursive: true });
-    }
-}
+// ============================================================================
+// ENDPOINTY PUBLICZNE (bez autoryzacji)
+// ============================================================================
 
 /**
- * Odczytuje zadania z pliku JSON
- * @returns {Promise<Array>} Tablica zadań
- * @throws {Error} Jeśli wystąpi błąd odczytu pliku
+ * GET /health - Sprawdzenie statusu API
  */
-async function readTasks() {
-    try {
-        await ensureDataDir();
-
-        // Sprawdź czy plik istnieje
-        try {
-            const data = await fs.readFile(TASKS_FILE, 'utf8');
-            if (data.trim() === '') {
-                return [];
-            }
-            
-            // Parsuj JSON z obsługą błędów
-            let parsed;
-            try {
-                parsed = JSON.parse(data);
-            } catch (parseError) {
-                console.error('Błąd parsowania JSON:', parseError);
-                // Utwórz backup uszkodzonego pliku
-                try {
-                    await fs.writeFile(TASKS_FILE + '.backup', data, 'utf8');
-                    console.log('Utworzono backup uszkodzonego pliku:', TASKS_FILE + '.backup');
-                } catch (backupError) {
-                    console.error('Nie udało się utworzyć backupu:', backupError);
-                }
-                return [];
-            }
-            
-            // Sprawdź czy wynik jest tablicą
-            if (!Array.isArray(parsed)) {
-                console.error('Plik tasks.json nie zawiera tablicy');
-                // Utwórz backup
-                try {
-                    await fs.writeFile(TASKS_FILE + '.backup', data, 'utf8');
-                } catch (backupError) {
-                    // Ignoruj błędy backupu
-                }
-                return [];
-            }
-            
-            return parsed;
-        } catch (error) {
-            // Jeśli plik nie istnieje, zwróć pustą tablicę
-            if (error.code === 'ENOENT') {
-                return [];
-            }
-            throw error;
-        }
-    } catch (error) {
-        console.error('Błąd odczytu pliku:', error);
-        throw error;
-    }
-}
-
-/**
- * Zapisuje zadania do pliku JSON
- * @param {Array} tasks - Tablica zadań do zapisania
- * @returns {Promise<void>}
- * @throws {Error} Jeśli wystąpi błąd zapisu pliku
- */
-async function writeTasks(tasks) {
-    try {
-        await ensureDataDir();
-        await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2), 'utf8');
-    } catch (error) {
-        console.error('Błąd zapisu pliku:', error);
-        throw error;
-    }
-}
-
-/**
- * Waliduje ID zadania
- * @param {string} idString - ID jako string
- * @returns {number|null} ID jako liczba lub null jeśli nieprawidłowe
- */
-function validateTaskId(idString) {
-    const id = parseInt(idString, 10);
-    if (isNaN(id) || !Number.isInteger(Number(idString)) || id <= 0) {
-        return null;
-    }
-    return id;
-}
-
-/**
- * Waliduje dane zadania
- * @param {Object} data - Dane do walidacji
- * @param {boolean} isUpdate - Czy to aktualizacja (tytuł opcjonalny)
- * @returns {Object|null} Obiekt z błędami lub null jeśli OK
- */
-function validateTaskData(data, isUpdate = false) {
-    const errors = [];
-    
-    if (!isUpdate && (!data.title || typeof data.title !== 'string' || data.title.trim() === '')) {
-        errors.push('Pole "title" jest wymagane i musi być niepustym stringiem');
-    }
-    
-    if (data.title !== undefined) {
-        if (typeof data.title !== 'string') {
-            errors.push('Pole "title" musi być stringiem');
-        } else if (data.title.trim() === '') {
-            errors.push('Pole "title" nie może być puste');
-        } else if (data.title.length > MAX_TITLE_LENGTH) {
-            errors.push(`Tytuł nie może przekraczać ${MAX_TITLE_LENGTH} znaków`);
-        }
-    }
-    
-    if (data.description !== undefined) {
-        if (data.description !== null && typeof data.description !== 'string') {
-            errors.push('Pole "description" musi być stringiem');
-        } else if (data.description && data.description.length > MAX_DESCRIPTION_LENGTH) {
-            errors.push(`Opis nie może przekraczać ${MAX_DESCRIPTION_LENGTH} znaków`);
-        }
-    }
-    
-    if (data.completed !== undefined && typeof data.completed !== 'boolean') {
-        errors.push('Pole "completed" musi być wartością boolean');
-    }
-    
-    return errors.length > 0 ? { errors } : null;
-}
-
-// GET /health - Sprawdzenie statusu API
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -179,182 +31,419 @@ app.get('/health', (req, res) => {
     });
 });
 
-// GET /tasks - Pobranie wszystkich zadań
-app.get('/tasks', async (req, res) => {
+/**
+ * POST /auth/register - Rejestracja nowego użytkownika
+ */
+app.post('/auth/register', async (req, res) => {
     try {
-        const tasks = await readTasks();
-        res.json(tasks);
+        const { email, password } = req.body;
+
+        // Walidacja
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                error: 'Password must be at least 6 characters'
+            });
+        }
+
+        // Rejestracja przez Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password
+        });
+
+        if (error) {
+            // Sprawdź czy użytkownik już istnieje
+            if (error.message.includes('already registered')) {
+                return res.status(400).json({
+                    error: 'User already exists'
+                });
+            }
+
+            console.error('Błąd rejestracji:', error);
+            return res.status(400).json({
+                error: error.message
+            });
+        }
+
+        // Pobierz profil użytkownika (utworzony automatycznie przez trigger)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+        res.status(201).json({
+            message: 'User created',
+            user: {
+                id: data.user.id,
+                email: data.user.email,
+                role: profile?.role || 'user',
+                created_at: data.user.created_at
+            }
+        });
     } catch (error) {
-        console.error('Błąd podczas pobierania zadań:', error);
+        console.error('Błąd podczas rejestracji:', error);
         res.status(500).json({
             error: 'Internal server error',
-            message: 'Nie udało się pobrać zadań'
+            message: 'Nie udało się zarejestrować użytkownika'
         });
     }
 });
 
-// POST /tasks - Dodanie nowego zadania
-app.post('/tasks', async (req, res) => {
+/**
+ * POST /auth/login - Logowanie użytkownika
+ */
+app.post('/auth/login', async (req, res) => {
     try {
-        const { title, description } = req.body;
+        const { email, password } = req.body;
 
-        // Walidacja danych
-        const validationError = validateTaskData(req.body, false);
-        if (validationError) {
+        // Walidacja
+        if (!email || !password) {
             return res.status(400).json({
-                error: 'Bad request',
-                message: validationError.errors[0],
-                errors: validationError.errors
+                error: 'Email and password are required'
             });
         }
 
-        // Odczytaj istniejące zadania
-        const tasks = await readTasks();
+        // Logowanie przez Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
 
-        // Znajdź największe ID i dodaj 1
-        let maxId = 0;
-        if (tasks.length > 0) {
-            const ids = tasks.map(task => task.id || 0).filter(id => typeof id === 'number' && id > 0);
-            maxId = ids.length > 0 ? Math.max(...ids) : 0;
+        if (error) {
+            return res.status(401).json({
+                error: 'Invalid credentials'
+            });
         }
-        const newId = maxId + 1;
 
-        // Utwórz nowe zadanie
-        const newTask = {
-            id: newId,
-            title: typeof title === 'string' ? title.trim() : title,
-            description: (description && typeof description === 'string') ? description.trim() : '',
-            completed: false,
-            createdAt: new Date().toISOString()
-        };
+        // Pobierz profil użytkownika z rolą
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
 
-        // Dodaj zadanie do listy
-        tasks.push(newTask);
-
-        // Zapisz do pliku
-        await writeTasks(tasks);
-
-        // Zwróć utworzone zadanie
-        res.status(201).json(newTask);
+        res.json({
+            token: data.session.access_token,
+            user: {
+                id: data.user.id,
+                email: data.user.email,
+                role: profile?.role || 'user'
+            }
+        });
     } catch (error) {
-        console.error('Błąd podczas dodawania zadania:', error);
+        console.error('Błąd podczas logowania:', error);
         res.status(500).json({
             error: 'Internal server error',
-            message: 'Nie udało się dodać zadania'
+            message: 'Nie udało się zalogować'
         });
     }
 });
 
-// PUT /tasks/:id - Modyfikacja istniejącego zadania
-app.put('/tasks/:id', async (req, res) => {
+// ============================================================================
+// MIDDLEWARE AUTORYZACJI - wszystkie endpointy poniżej wymagają tokena
+// ============================================================================
+app.use(verifyToken);
+
+// ============================================================================
+// ENDPOINTY TASKÓW (wymagają autoryzacji)
+// ============================================================================
+
+/**
+ * GET /tasks - Pobranie listy tasków
+ * User widzi tylko swoje taski, admin widzi wszystkie
+ */
+app.get('/tasks', requireAuth, async (req, res) => {
     try {
-        const taskId = validateTaskId(req.params.id);
-        if (!taskId) {
-            return res.status(400).json({
-                error: 'Bad request',
-                message: 'ID musi być dodatnią liczbą całkowitą'
+        let query = supabase
+            .from('tasks')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        // Jeśli nie jest adminem, pokaż tylko jego taski
+        // (RLS automatycznie to filtruje, ale dla jasności dodajemy warunek)
+        if (req.user.role !== 'admin') {
+            query = query.eq('user_id', req.user.id);
+        }
+
+        const { data: tasks, error } = await query;
+
+        if (error) {
+            console.error('Błąd pobierania tasków:', error);
+            return res.status(500).json({
+                error: 'Failed to fetch tasks'
             });
         }
 
-        const { title, description, completed } = req.body;
+        res.json(tasks || []);
+    } catch (error) {
+        console.error('Błąd podczas pobierania tasków:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Nie udało się pobrać tasków'
+        });
+    }
+});
 
-        // Walidacja danych
-        const validationError = validateTaskData(req.body, true);
-        if (validationError) {
+/**
+ * POST /tasks - Utworzenie nowego taska
+ */
+app.post('/tasks', requireAuth, async (req, res) => {
+    try {
+        const { title } = req.body;
+
+        // Walidacja
+        if (!title || typeof title !== 'string' || title.trim() === '') {
             return res.status(400).json({
-                error: 'Bad request',
-                message: validationError.errors[0],
-                errors: validationError.errors
+                error: 'Title is required'
             });
         }
 
-        // Odczytaj istniejące zadania
-        const tasks = await readTasks();
+        // Utworzenie taska (automatycznie przypisany do zalogowanego użytkownika)
+        const { data: task, error } = await supabase
+            .from('tasks')
+            .insert([
+                {
+                    title: title.trim(),
+                    completed: false,
+                    user_id: req.user.id
+                }
+            ])
+            .select()
+            .single();
 
-        // Znajdź zadanie o podanym ID
-        const taskIndex = tasks.findIndex(task => task.id === taskId);
+        if (error) {
+            console.error('Błąd tworzenia taska:', error);
+            return res.status(500).json({
+                error: 'Failed to create task'
+            });
+        }
 
-        if (taskIndex === -1) {
+        res.status(201).json(task);
+    } catch (error) {
+        console.error('Błąd podczas tworzenia taska:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Nie udało się utworzyć taska'
+        });
+    }
+});
+
+/**
+ * PATCH /tasks/:id - Aktualizacja taska (zmiana statusu completed)
+ */
+app.patch('/tasks/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { completed } = req.body;
+
+        // Walidacja UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+            return res.status(400).json({
+                error: 'Invalid task ID format'
+            });
+        }
+
+        // Walidacja completed
+        if (completed !== undefined && typeof completed !== 'boolean') {
+            return res.status(400).json({
+                error: 'Completed must be a boolean'
+            });
+        }
+
+        // Sprawdź czy task istnieje i czy użytkownik ma do niego dostęp
+        const { data: existingTask, error: fetchError } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !existingTask) {
             return res.status(404).json({
-                error: 'Task not found',
-                id: taskId
+                error: 'Task not found'
             });
         }
 
-        // Zaktualizuj zadanie
-        const task = tasks[taskIndex];
-        
-        if (title !== undefined) {
-            task.title = typeof title === 'string' ? title.trim() : title;
+        // Sprawdź uprawnienia (user może edytować tylko swoje, admin wszystkie)
+        if (req.user.role !== 'admin' && existingTask.user_id !== req.user.id) {
+            return res.status(403).json({
+                error: 'Access denied'
+            });
         }
 
-        if (description !== undefined) {
-            task.description = (description && typeof description === 'string') ? description.trim() : '';
+        // Aktualizacja
+        const { data: updatedTask, error: updateError } = await supabase
+            .from('tasks')
+            .update({ completed })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (updateError) {
+            console.error('Błąd aktualizacji taska:', updateError);
+            return res.status(500).json({
+                error: 'Failed to update task'
+            });
         }
 
-        if (completed !== undefined) {
-            task.completed = completed;
-        }
-
-        // Dodaj updatedAt jeśli nie istnieje lub zaktualizuj
-        task.updatedAt = new Date().toISOString();
-
-        // Zapisz do pliku
-        await writeTasks(tasks);
-
-        // Zwróć zaktualizowane zadanie
-        res.json(task);
+        res.json(updatedTask);
     } catch (error) {
-        console.error('Błąd podczas modyfikacji zadania:', error);
+        console.error('Błąd podczas aktualizacji taska:', error);
         res.status(500).json({
             error: 'Internal server error',
-            message: 'Nie udało się zmodyfikować zadania'
+            message: 'Nie udało się zaktualizować taska'
         });
     }
 });
 
-// DELETE /tasks/:id - Usunięcie zadania
-app.delete('/tasks/:id', async (req, res) => {
+/**
+ * DELETE /tasks/:id - Usunięcie taska
+ */
+app.delete('/tasks/:id', requireAuth, async (req, res) => {
     try {
-        const taskId = validateTaskId(req.params.id);
-        if (!taskId) {
+        const { id } = req.params;
+
+        // Walidacja UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
             return res.status(400).json({
-                error: 'Bad request',
-                message: 'ID musi być dodatnią liczbą całkowitą'
+                error: 'Invalid task ID format'
             });
         }
 
-        // Odczytaj istniejące zadania
-        const tasks = await readTasks();
+        // Sprawdź czy task istnieje i czy użytkownik ma do niego dostęp
+        const { data: existingTask, error: fetchError } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        // Znajdź zadanie o podanym ID
-        const taskIndex = tasks.findIndex(task => task.id === taskId);
-
-        if (taskIndex === -1) {
+        if (fetchError || !existingTask) {
             return res.status(404).json({
-                error: 'Task not found',
-                id: taskId
+                error: 'Task not found'
             });
         }
 
-        // Usuń zadanie
-        tasks.splice(taskIndex, 1);
+        // Sprawdź uprawnienia
+        if (req.user.role !== 'admin' && existingTask.user_id !== req.user.id) {
+            return res.status(403).json({
+                error: 'Access denied'
+            });
+        }
 
-        // Zapisz do pliku
-        await writeTasks(tasks);
+        // Usunięcie
+        const { error: deleteError } = await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', id);
 
-        // Zwróć status 204 No Content
+        if (deleteError) {
+            console.error('Błąd usuwania taska:', deleteError);
+            return res.status(500).json({
+                error: 'Failed to delete task'
+            });
+        }
+
         res.status(204).send();
     } catch (error) {
-        console.error('Błąd podczas usuwania zadania:', error);
+        console.error('Błąd podczas usuwania taska:', error);
         res.status(500).json({
             error: 'Internal server error',
-            message: 'Nie udało się usunąć zadania'
+            message: 'Nie udało się usunąć taska'
         });
     }
 });
 
-// Obsługa błędów 404
+// ============================================================================
+// ENDPOINTY ADMINISTRACYJNE (tylko dla adminów)
+// ============================================================================
+
+/**
+ * GET /admin/users - Pobranie listy wszystkich użytkowników
+ */
+app.get('/admin/users', requireAdmin, async (req, res) => {
+    try {
+        // Użyj supabaseAdmin aby pominąć RLS
+        const { data: profiles, error } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Błąd pobierania użytkowników:', error);
+            return res.status(500).json({
+                error: 'Failed to fetch users'
+            });
+        }
+
+        res.json(profiles || []);
+    } catch (error) {
+        console.error('Błąd podczas pobierania użytkowników:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Nie udało się pobrać użytkowników'
+        });
+    }
+});
+
+/**
+ * DELETE /admin/users/:id - Usunięcie użytkownika
+ */
+app.delete('/admin/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Walidacja UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+            return res.status(400).json({
+                error: 'Invalid user ID format'
+            });
+        }
+
+        // Sprawdź czy użytkownik istnieje
+        const { data: profile, error: fetchError } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !profile) {
+            return res.status(404).json({
+                error: 'User not found'
+            });
+        }
+
+        // Usuń użytkownika z auth.users (CASCADE usunie też profil i taski)
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+
+        if (deleteError) {
+            console.error('Błąd usuwania użytkownika:', deleteError);
+            return res.status(500).json({
+                error: 'Failed to delete user'
+            });
+        }
+
+        res.status(204).send();
+    } catch (error) {
+        console.error('Błąd podczas usuwania użytkownika:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: 'Nie udało się usunąć użytkownika'
+        });
+    }
+});
+
+// ============================================================================
+// OBSŁUGA BŁĘDÓW 404
+// ============================================================================
 app.use((req, res) => {
     res.status(404).json({
         error: 'Not found',
@@ -362,8 +451,11 @@ app.use((req, res) => {
     });
 });
 
-// Uruchomienie serwera
+// ============================================================================
+// URUCHOMIENIE SERWERA
+// ============================================================================
 app.listen(PORT, () => {
     console.log(`🚀 Serwer API działa na http://localhost:${PORT}`);
-    console.log(`📁 Plik zadań: ${TASKS_FILE}`);
+    console.log(`📊 Supabase URL: ${process.env.SUPABASE_URL}`);
+    console.log(`🔐 Autoryzacja: JWT (Supabase Auth)`);
 });

@@ -1,0 +1,397 @@
+[
+  {
+    "id": 3,
+    "title": "2",
+    "description": "3",
+    "completed": true,
+    "createdAt": "2025-11-22T17:42:27.669Z",
+    "updatedAt": "2025-11-22T19:12:43.323Z"
+  },
+  {
+    "id": 4,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T18:18:14.359Z"
+  },
+  {
+    "id": 5,
+    "title": "Odrobić zadanie z backendu",
+    "description": "REST API dla TODO",
+    "completed": false,
+    "createdAt": "2025-11-22T18:18:14.387Z"
+  },
+  {
+    "id": 6,
+    "title": "222",
+    "description": "test",
+    "completed": false,
+    "createdAt": "2025-11-22T18:32:52.951Z"
+  },
+  {
+    "id": 7,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:13.953Z"
+  },
+  {
+    "id": 8,
+    "title": "Odrobić zadanie z backendu",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:13.976Z"
+  },
+  {
+    "id": 9,
+    "title": "Zadanie z pustym opisem",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:13.999Z"
+  },
+  {
+    "id": 10,
+    "title": "Zadanie z znakami: !@#$%^&*()",
+    "description": "Opis z <script>alert(1)</script>",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.022Z"
+  },
+  {
+    "id": 11,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.745Z"
+  },
+  {
+    "id": 12,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.762Z"
+  },
+  {
+    "id": 13,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.778Z"
+  },
+  {
+    "id": 14,
+    "title": "Test struktury",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.794Z"
+  },
+  {
+    "id": 15,
+    "title": "Test zapisu do pliku",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:38:14.848Z"
+  },
+  {
+    "id": 16,
+    "title": "222",
+    "description": "111",
+    "completed": false,
+    "createdAt": "2025-11-22T18:39:06.204Z"
+  },
+  {
+    "id": 17,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T18:49:44.030Z"
+  },
+  {
+    "id": 18,
+    "title": "Odrobić zadanie z backendu",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:49:44.053Z"
+  },
+  {
+    "id": 19,
+    "title": "Zadanie z pustym opisem",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:49:44.077Z"
+  },
+  {
+    "id": 20,
+    "title": "Zadanie z znakami: !@#$%^&*()",
+    "description": "Opis z <script>alert(1)</script>",
+    "completed": false,
+    "createdAt": "2025-11-22T18:49:44.099Z"
+  },
+  {
+    "id": 21,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T18:58:59.584Z"
+  },
+  {
+    "id": 22,
+    "title": "Odrobić zadanie z backendu",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:58:59.610Z"
+  },
+  {
+    "id": 23,
+    "title": "Zadanie z pustym opisem",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:58:59.635Z"
+  },
+  {
+    "id": 24,
+    "title": "Zadanie z znakami: !@#$%^&*()",
+    "description": "Opis z <script>alert(1)</script>",
+    "completed": false,
+    "createdAt": "2025-11-22T18:58:59.660Z"
+  },
+  {
+    "id": 25,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:59:00.418Z"
+  },
+  {
+    "id": 26,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:59:00.436Z"
+  },
+  {
+    "id": 27,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T18:59:00.452Z"
+  },
+  {
+    "id": 28,
+    "title": "Test struktury",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:59:00.470Z"
+  },
+  {
+    "id": 29,
+    "title": "Test zapisu do pliku",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T18:59:00.519Z"
+  },
+  {
+    "id": 30,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:45.161Z"
+  },
+  {
+    "id": 31,
+    "title": "Odrobić zadanie z backendu",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:45.188Z"
+  },
+  {
+    "id": 32,
+    "title": "Zadanie z pustym opisem",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:45.212Z"
+  },
+  {
+    "id": 33,
+    "title": "Zadanie z znakami: !@#$%^&*()",
+    "description": "Opis z <script>alert(1)</script>",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:45.237Z"
+  },
+  {
+    "id": 34,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:46.131Z"
+  },
+  {
+    "id": 35,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:46.151Z"
+  },
+  {
+    "id": 36,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:46.170Z"
+  },
+  {
+    "id": 37,
+    "title": "Test struktury",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:46.188Z"
+  },
+  {
+    "id": 38,
+    "title": "Test zapisu do pliku",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:00:46.243Z"
+  },
+  {
+    "id": 39,
+    "title": "Kupić mleko",
+    "description": "Mleko 3,2% - 2 litry",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:23.578Z"
+  },
+  {
+    "id": 40,
+    "title": "Odrobić zadanie z backendu",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:23.603Z"
+  },
+  {
+    "id": 41,
+    "title": "Zadanie z pustym opisem",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:23.627Z"
+  },
+  {
+    "id": 42,
+    "title": "Zadanie z znakami: !@#$%^&*()",
+    "description": "Opis z <script>alert(1)</script>",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:23.650Z"
+  },
+  {
+    "id": 43,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:24.656Z"
+  },
+  {
+    "id": 44,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:24.675Z"
+  },
+  {
+    "id": 45,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:24.696Z"
+  },
+  {
+    "id": 46,
+    "title": "Test struktury",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:02:24.716Z"
+  },
+  {
+    "id": 47,
+    "title": "Test zadanie 1",
+    "description": "To jest pierwsze testowe zadanie",
+    "completed": false,
+    "createdAt": "2025-11-22T19:08:27.417Z"
+  },
+  {
+    "id": 48,
+    "title": "Test zadanie 2",
+    "description": "To jest drugie testowe zadanie",
+    "completed": false,
+    "createdAt": "2025-11-22T19:08:27.445Z"
+  },
+  {
+    "id": 49,
+    "title": "Zadanie testowe 1",
+    "description": "Opis zadania 1",
+    "completed": false,
+    "createdAt": "2025-11-22T19:09:24.564Z"
+  },
+  {
+    "id": 50,
+    "title": "Test updatedAt",
+    "description": "Nowy opis",
+    "completed": false,
+    "createdAt": "2025-11-22T19:09:24.588Z",
+    "updatedAt": "2025-11-22T19:09:24.970Z"
+  },
+  {
+    "id": 51,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T19:09:25.228Z"
+  },
+  {
+    "id": 52,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:09:25.251Z"
+  },
+  {
+    "id": 53,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:09:25.271Z"
+  },
+  {
+    "id": 54,
+    "title": "Zadanie testowe 1",
+    "description": "Opis zadania 1",
+    "completed": false,
+    "createdAt": "2025-11-22T19:11:02.393Z"
+  },
+  {
+    "id": 55,
+    "title": "Test updatedAt",
+    "description": "Nowy opis",
+    "completed": false,
+    "createdAt": "2025-11-22T19:11:02.417Z",
+    "updatedAt": "2025-11-22T19:11:02.796Z"
+  },
+  {
+    "id": 56,
+    "title": "Tytuł z białymi znakami",
+    "description": "Opis z białymi znakami",
+    "completed": false,
+    "createdAt": "2025-11-22T19:11:03.035Z"
+  },
+  {
+    "id": 57,
+    "title": "Zadanie A",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:11:03.053Z"
+  },
+  {
+    "id": 58,
+    "title": "Zadanie B",
+    "description": "",
+    "completed": false,
+    "createdAt": "2025-11-22T19:11:03.072Z"
+  }
+]
